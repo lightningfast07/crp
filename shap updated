@@ -1,0 +1,98 @@
+from flask import Flask, request, jsonify
+import pandas as pd
+import numpy as np
+import joblib
+from keras import models
+import shap
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+# Load your pretrained models and feature names
+decision_tree_model = joblib.load('Models/decision_tree_model.pkl')
+ann_model = models.load_model('Models/ann_model.h5')
+feature_names = ['age','sex','cp','trtbps','chol','fbs','restecg','thalachh','exng','oldpeak','slp','caa','thall']  # Replace with your actual feature names
+
+# Assuming X_train is your training data (numpy array)
+xtrain = np.load('xtrain.npy')
+X_train = xtrain  # Replace with your actual X_train data
+
+def get_mean_abs_shap_values(model, X_sample, masker):
+    explainer = shap.Explainer(model, masker=masker)
+    shap_values = explainer(X_sample)
+    shap_values = shap_values.values if len(shap_values.shape) == 2 else shap_values.values[:, :, 0]
+    mean_abs_shap_values = np.mean(np.abs(shap_values), axis=0)
+    return mean_abs_shap_values
+
+# Route to handle predictions and SHAP values
+@app.route('/predict', methods=['POST'])
+def predict():
+    try:
+        # Receive the file and other data from the request
+        file = request.files['file']
+        start = int(request.form['start'])
+        stop = int(request.form['stop'])
+
+        # Read the CSV file
+        df = pd.read_csv(file)
+
+        # Drop the output column if it exists (assuming 'output' is the column name)
+        if 'output' in df.columns:
+            df.drop(columns=['output'], inplace=True)
+
+        # Initialize an empty list to store SHAP values
+        shap_values_list = []
+
+        # Define masker
+        masker = shap.maskers.Independent(X_train)
+
+        # Iterate over rows from start to stop
+        for i in range(start, stop):
+            # Select the i-th row to predict
+            data_to_predict = df.iloc[i:i+1]
+
+            # Convert the data to numpy array
+            data_to_predict_np = data_to_predict.to_numpy()
+
+            # Make predictions using the pretrained models
+            decision_tree_predictions = decision_tree_model.predict(data_to_predict_np)
+            ann_predictions = ann_model.predict(data_to_predict_np)
+
+            # Compute mean absolute SHAP values for each model
+            ann_shap_values = get_mean_abs_shap_values(ann_model, data_to_predict_np, masker)
+            dt_shap_values = get_mean_abs_shap_values(decision_tree_model, data_to_predict_np, masker)
+
+            # Combine the mean absolute SHAP values
+            combined_shap_values = (ann_shap_values + dt_shap_values) / 2
+
+            # Create a DataFrame to hold feature names and their combined mean SHAP values
+            shap_df = pd.DataFrame({
+                'feature': feature_names,
+                'combined_mean_abs_shap_value': combined_shap_values
+            })
+
+            # Sort the DataFrame by combined mean SHAP values in descending order and get the top 3 features
+            top_features = shap_df.sort_values(by='combined_mean_abs_shap_value', ascending=False).head(3)
+
+            # Store the top 3 most influential feature names in a variable
+            top_3_features = top_features['feature'].tolist()
+
+            # Append SHAP values and predictions to the list
+            shap_values_list.append({
+                'decision_tree_predictions': decision_tree_predictions.tolist(),
+                'ann_predictions': ann_predictions.tolist(),
+                'top_3_features': top_3_features
+            })
+
+        # Prepare the response with all SHAP values and predictions
+        response = {
+            'shap_values_list': shap_values_list
+        }
+
+        return jsonify(response)
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+if __name__ == '__main__':
+    app.run(debug=True)

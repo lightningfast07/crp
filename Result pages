@@ -1,0 +1,146 @@
+app.tsx
+
+import React from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import UploadPage from "./UploadPage";
+import ResultsPage from "./ResultsPage";
+
+const App: React.FC = () => {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<UploadPage />} />
+        <Route path="/results" element={<ResultsPage />} />
+      </Routes>
+    </Router>
+  );
+};
+
+export default App;
+
+uploadpage.tsx
+
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+
+const UploadPage: React.FC = () => {
+  const [file, setFile] = useState<File | null>(null);
+  const [start, setStart] = useState<string>("");
+  const [stop, setStop] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const navigate = useNavigate();
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setFile(event.target.files ? event.target.files[0] : null);
+  };
+
+  const handleStartChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setStart(event.target.value);
+  };
+
+  const handleStopChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setStop(event.target.value);
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!file) {
+      setError("Please select a file.");
+      return;
+    }
+
+    if (!start || !stop) {
+      setError("Please enter start and stop indices.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("start", start);
+    formData.append("stop", stop);
+
+    try {
+      const response = await axios.post("http://localhost:5000/predict", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      navigate("/results", { state: { predictions: response.data.shap_values_list } });
+      setError("");
+    } catch (error) {
+      setError("Error predicting: " + error.message);
+    }
+  };
+
+  return (
+    <div>
+      <h2>Upload CSV File and Get Predictions</h2>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Select CSV File:</label>
+          <input type="file" onChange={handleFileChange} accept=".csv" />
+        </div>
+        <div>
+          <label>Start Index:</label>
+          <input type="number" value={start} onChange={handleStartChange} />
+        </div>
+        <div>
+          <label>Stop Index:</label>
+          <input type="number" value={stop} onChange={handleStopChange} />
+        </div>
+        <button type="submit">Predict</button>
+      </form>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+    </div>
+  );
+};
+
+export default UploadPage;
+
+resultpage.tsx
+
+import React from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+
+interface Prediction {
+  decision_tree_predictions: number[];
+  ann_predictions: number[];
+  shap_bar_img: string;
+  top_3_features: string[];
+}
+
+const ResultsPage: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { predictions } = location.state as { predictions: Prediction[] };
+
+  return (
+    <div>
+      <h2>Predictions and SHAP Values</h2>
+      {predictions.map((item, index) => (
+        <div key={index}>
+          <h4>Instance {index + 1}</h4>
+          <p>
+            Decision Tree Predictions:{" "}
+            {JSON.stringify(item.decision_tree_predictions)}
+          </p>
+          <p>ANN Predictions: {JSON.stringify(item.ann_predictions)}</p>
+          <p>
+            Top 3 Influential Features: {JSON.stringify(item.top_3_features)}
+          </p>
+          <img
+            src={`data:image/png;base64,${item.shap_bar_img}`}
+            alt={`SHAP Bar Graph for Instance ${index + 1}`}
+          />
+        </div>
+      ))}
+      <button onClick={() => navigate("/")}>Go Back</button>
+    </div>
+  );
+};
+
+export default ResultsPage;

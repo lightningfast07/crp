@@ -77,3 +77,78 @@ df_rfe = df[selected_features]
 
 # Save the DataFrame with selected features
 df_rfe.to_csv('rfe_selected_features_dataset.csv', index=False)
+
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import RandomUnderSampler
+from imblearn.combine import SMOTEENN
+
+# Load your dataset
+df = pd.read_csv('your_dataset.csv')
+
+# Separate features and output
+X = df.drop(columns=['Close'])
+y = df['Close']
+
+# Split the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Standardize the data (optional, but often recommended for ML algorithms)
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Resampling Techniques
+# Option 1: SMOTE (Oversampling the minority class)
+smote = SMOTE(random_state=42)
+X_train_res, y_train_res = smote.fit_resample(X_train_scaled, y_train)
+
+# Option 2: Undersampling the majority class
+rus = RandomUnderSampler(random_state=42)
+X_train_res, y_train_res = rus.fit_resample(X_train_scaled, y_train)
+
+# Option 3: Combining SMOTE and Edited Nearest Neighbors (ENN)
+smote_enn = SMOTEENN(random_state=42)
+X_train_res, y_train_res = smote_enn.fit_resample(X_train_scaled, y_train)
+
+# Now train your model using X_train_res and y_train_res
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+
+# Train a RandomForest model
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train_res, y_train_res)
+
+# Make predictions
+y_pred = model.predict(X_test_scaled)
+
+# Evaluate the model
+print(confusion_matrix(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+
+
+from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score
+
+# Assuming y_test and y_pred are defined as above
+precision = precision_score(y_test, y_pred, average='weighted')
+recall = recall_score(y_test, y_pred, average='weighted')
+f1 = f1_score(y_test, y_pred, average='weighted')
+roc_auc = roc_auc_score(y_test, model.predict_proba(X_test_scaled), multi_class='ovr')
+
+print(f'Precision: {precision}')
+print(f'Recall: {recall}')
+print(f'F1 Score: {f1}')
+print(f'ROC AUC Score: {roc_auc}')
+
+from sklearn.ensemble import RandomForestClassifier
+
+model = RandomForestClassifier(class_weight='balanced', random_state=42)
+model.fit(X_train, y_train)
+
+from imblearn.ensemble import EasyEnsembleClassifier
+
+model = EasyEnsembleClassifier(random_state=42)
+model.fit(X_train, y_train)

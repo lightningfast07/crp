@@ -152,3 +152,48 @@ from imblearn.ensemble import EasyEnsembleClassifier
 
 model = EasyEnsembleClassifier(random_state=42)
 model.fit(X_train, y_train)
+
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.optimizers import Adam
+from sklearn.metrics import confusion_matrix, classification_report, precision_score, recall_score, f1_score, roc_auc_score
+
+# Define the ANN model
+ann_model = Sequential([
+    Dense(64, activation='relu', input_shape=(X_train_res.shape[1],)),
+    Dropout(0.5),
+    Dense(32, activation='relu'),
+    Dropout(0.5),
+    Dense(1, activation='sigmoid')
+])
+
+# Compile the model
+ann_model.compile(optimizer=Adam(lr=0.001), loss='binary_crossentropy', metrics=['accuracy'])
+
+# Print model summary
+print(ann_model.summary())
+
+# Train the model
+history = ann_model.fit(X_train_res, y_train_res, 
+                        epochs=20, batch_size=64, 
+                        validation_data=(X_test_scaled, y_test),
+                        verbose=1)
+
+# Make predictions
+y_pred_ann = (ann_model.predict(X_test_scaled) > 0.5).astype('int32')  # Convert probabilities to binary predictions
+
+# Evaluate the model
+print(confusion_matrix(y_test, y_pred_ann))
+print(classification_report(y_test, y_pred_ann))
+
+# Calculate metrics
+precision_ann = precision_score(y_test, y_pred_ann, average='weighted')
+recall_ann = recall_score(y_test, y_pred_ann, average='weighted')
+f1_ann = f1_score(y_test, y_pred_ann, average='weighted')
+roc_auc_ann = roc_auc_score(y_test, ann_model.predict(X_test_scaled))
+
+print(f'ANN Precision: {precision_ann}')
+print(f'ANN Recall: {recall_ann}')
+print(f'ANN F1 Score: {f1_ann}')
+print(f'ANN ROC AUC Score: {roc_auc_ann}')

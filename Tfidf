@@ -151,3 +151,11 @@ for i in range(len(X_test)):
     print(f"\nSHAP Beeswarm plot for Instance {i+1}:")
     shap.initjs()
     shap.force_plot(explainer.expected_value[0], shap_values[0][i], X_test[i], matplotlib=True
+
+
+plt.figure(figsize=(8, 8))
+target_counts = target.value_counts()
+target_counts.plot.pie(autopct=lambda p: f'{p:.1f}% ({int(p * target_counts.sum() / 100)})')
+plt.title('Target Class Imbalance')
+plt.ylabel('')
+plt.show()

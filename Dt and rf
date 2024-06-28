@@ -1,0 +1,70 @@
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+
+# 8.1 Train a Decision Tree model
+def train_and_evaluate_tree(X_train, y_train, X_test, y_test):
+    tree = DecisionTreeClassifier(random_state=42)
+    tree.fit(X_train, y_train)
+    y_pred = tree.predict(X_test)
+    return tree, y_pred
+
+# Train and evaluate on original data
+tree_model_orig, y_pred_tree_orig = train_and_evaluate_tree(X_train, y_train, X_test, y_test)
+
+# Train and evaluate on undersampled data
+tree_model_under, y_pred_tree_under = train_and_evaluate_tree(X_train_under, y_train_under, X_test, y_test)
+
+# Train and evaluate on oversampled data
+tree_model_over, y_pred_tree_over = train_and_evaluate_tree(X_train_over, y_train_over, X_test, y_test)
+
+# 8.2 Train a Random Forest model
+def train_and_evaluate_rf(X_train, y_train, X_test, y_test):
+    rf = RandomForestClassifier(random_state=42, n_estimators=100)
+    rf.fit(X_train, y_train)
+    y_pred = rf.predict(X_test)
+    return rf, y_pred
+
+# Train and evaluate on original data
+rf_model_orig, y_pred_rf_orig = train_and_evaluate_rf(X_train, y_train, X_test, y_test)
+
+# Train and evaluate on undersampled data
+rf_model_under, y_pred_rf_under = train_and_evaluate_rf(X_train_under, y_train_under, X_test, y_test)
+
+# Train and evaluate on oversampled data
+rf_model_over, y_pred_rf_over = train_and_evaluate_rf(X_train_over, y_train_over, X_test, y_test)
+
+# 9. Evaluation metrics
+def print_evaluation_metrics(y_test, y_pred):
+    print("Accuracy:", accuracy_score(y_test, y_pred))
+    print("Precision:", precision_score(y_test, y_pred))
+    print("Recall:", recall_score(y_test, y_pred))
+    print("F1 Score:", f1_score(y_test, y_pred))
+    print("ROC AUC Score:", roc_auc_score(y_test, y_pred))
+    print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+print("Original Data Evaluation Metrics (ANN):")
+print_evaluation_metrics(y_test, y_pred_orig)
+
+print("\nUndersampled Data Evaluation Metrics (ANN):")
+print_evaluation_metrics(y_test, y_pred_under)
+
+print("\nOversampled Data Evaluation Metrics (ANN):")
+print_evaluation_metrics(y_test, y_pred_over)
+
+print("\nOriginal Data Evaluation Metrics (Decision Tree):")
+print_evaluation_metrics(y_test, y_pred_tree_orig)
+
+print("\nUndersampled Data Evaluation Metrics (Decision Tree):")
+print_evaluation_metrics(y_test, y_pred_tree_under)
+
+print("\nOversampled Data Evaluation Metrics (Decision Tree):")
+print_evaluation_metrics(y_test, y_pred_tree_over)
+
+print("\nOriginal Data Evaluation Metrics (Random Forest):")
+print_evaluation_metrics(y_test, y_pred_rf_orig)
+
+print("\nUndersampled Data Evaluation Metrics (Random Forest):")
+print_evaluation_metrics(y_test, y_pred_rf_under)
+
+print("\nOversampled Data Evaluation Metrics (Random Forest):")
+print_evaluation_metrics(y_test, y_pred_rf_over

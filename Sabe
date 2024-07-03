@@ -54,3 +54,39 @@ const UploadPage: React.FC = () => {
 };
 
 export default UploadPage;
+
+
+
+
+import React, { useEffect, useState } from 'react';
+
+interface ExcelRow {
+  Number: number;
+}
+
+const ResultPage: React.FC = () => {
+  const [data, setData] = useState<ExcelRow[]>([]);
+
+  useEffect(() => {
+    const storedData = localStorage.getItem('excelData');
+    if (storedData) {
+      setData(JSON.parse(storedData));
+    }
+  }, []);
+
+  return (
+    <div>
+      {data.map((row, index) => (
+        <div key={index} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+          <div style={{ marginRight: '20px' }}>{row.Number}</div>
+          <select>
+            <option value="successful">Successful</option>
+            <option value="unsuccessful">Unsuccessful</option>
+          </select>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default ResultPage;

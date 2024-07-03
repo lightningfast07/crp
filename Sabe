@@ -1,0 +1,56 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
+import Papa from 'papaparse';
+
+const UploadPage: React.FC = () => {
+  const [file, setFile] = useState<File | null>(null);
+  const navigate = useNavigate();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files[0]) {
+      setFile(files[0]);
+    }
+  };
+
+  const handleSave = () => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = e.target?.result;
+        if (data) {
+          if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+            const workbook = XLSX.read(data, { type: 'binary' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(sheet);
+            localStorage.setItem('excelData', JSON.stringify(json));
+          } else if (file.name.endsWith('.csv')) {
+            Papa.parse(data as string, {
+              header: true,
+              complete: (results) => {
+                localStorage.setItem('excelData', JSON.stringify(results.data));
+              },
+            });
+          }
+          navigate('/results');
+        }
+      };
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        reader.readAsBinaryString(file);
+      } else if (file.name.endsWith('.csv')) {
+        reader.readAsText(file);
+      }
+    }
+  };
+
+  return (
+    <div>
+      <input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileChange} />
+      <button onClick={handleSave}>Save</button>
+    </div>
+  );
+};
+
+export default UploadPage;

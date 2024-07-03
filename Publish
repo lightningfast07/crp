@@ -1,0 +1,88 @@
+import React, { useEffect, useState } from 'react';
+import './ResultPage.css'; // Import the CSS file
+
+interface ExcelRow {
+  Number: number;
+}
+
+const ResultPage: React.FC = () => {
+  const [data, setData] = useState<ExcelRow[]>([]);
+
+  useEffect(() => {
+    const storedData = localStorage.getItem('excelData');
+    if (storedData) {
+      setData(JSON.parse(storedData));
+    }
+  }, []);
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const select = e.target;
+    if (select.value === 'successful') {
+      select.className = 'successful';
+    } else if (select.value === 'unsuccessful') {
+      select.className = 'unsuccessful';
+    }
+  };
+
+  return (
+    <div className="result-container">
+      {data.map((row, index) => (
+        <div key={index} className="result-row">
+          <div className="number-column">{row.Number}</div>
+          <select onChange={handleSelectChange} className="default">
+            <option value="default">Select Status</option>
+            <option value="successful">Successful</option>
+            <option value="unsuccessful">Unsuccessful</option>
+          </select>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default ResultPage;
+
+
+
+
+
+.result-container {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.result-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.number-column {
+  margin-right: 20px;
+  font-weight: bold;
+}
+
+select {
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.default {
+  background-color: white;
+  color: black;
+}
+
+.successful {
+  background-color: green;
+  color: white;
+}
+
+.unsuccessful {
+  background-color: red;
+  color: white;
+}

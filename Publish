@@ -86,3 +86,98 @@ select {
   background-color: red;
   color: white;
 }
+
+
+
+
+
+import React, { useEffect, useState } from 'react';
+import './ResultPage.css';
+import axios from 'axios';
+
+interface ExcelRow {
+  Number: number | null;
+}
+
+interface RowStatus {
+  number: number;
+  status: string;
+}
+
+const ResultPage: React.FC = () => {
+  const [data, setData] = useState<ExcelRow[]>([]);
+  const [statuses, setStatuses] = useState<RowStatus[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    const storedData = localStorage.getItem('excelData');
+    const storedFile = localStorage.getItem('excelFile');
+    if (storedData) {
+      const parsedData: ExcelRow[] = JSON.parse(storedData);
+      const filteredData = parsedData.filter(row => row.Number != null);
+      setData(filteredData);
+      setStatuses(filteredData.map(row => ({ number: row.Number!, status: 'default' })));
+    }
+    if (storedFile) {
+      const parsedFile: File = JSON.parse(storedFile);
+      setFile(parsedFile);
+    }
+  }, []);
+
+  const handleSelectChange = (index: number) => (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const updatedStatuses = [...statuses];
+    updatedStatuses[index].status = e.target.value;
+    setStatuses(updatedStatuses);
+  };
+
+  const handlePublish = async () => {
+    const allSelected = statuses.every(status => status.status !== 'default');
+    if (!allSelected) {
+      alert('Please select a status for all rows.');
+      return;
+    }
+
+    const numbers = statuses.map(status => status.number);
+    const statusValues = statuses.map(status => status.status);
+
+    const formData = new FormData();
+    if (file) {
+      formData.append('file', file);
+    }
+    formData.append('numbers', JSON.stringify(numbers));
+    formData.append('statuses', JSON.stringify(statusValues));
+
+    try {
+      const response = await axios.post('/api/save', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      console.log('Response:', response.data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  return (
+    <div className="result-container">
+      {data.map((row, index) => (
+        <div key={index} className="result-row">
+          <div className="number-column">{row.Number}</div>
+          <select 
+            onChange={handleSelectChange(index)} 
+            className={statuses[index]?.status || 'default'}
+            value={statuses[index]?.status || 'default'}
+          >
+            <option value="default">Select Status</option>
+            <option value="successful">Successful</option>
+            <option value="unsuccessful">Unsuccessful</option>
+          </select>
+        </div>
+      ))}
+      <button onClick={handlePublish}>Publish</button>
+    </div>
+  );
+};
+
+export default ResultPage;

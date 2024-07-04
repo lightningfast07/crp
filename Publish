@@ -181,3 +181,113 @@ const ResultPage: React.FC = () => {
 };
 
 export default ResultPage;
+
+
+
+
+
+import React, { useEffect, useState } from 'react';
+import './ResultPage.css';
+import axios from 'axios';
+
+interface ExcelRow {
+  Number: number | null;
+}
+
+interface RowStatus {
+  number: number;
+  status: string;
+}
+
+const ResultPage: React.FC = () => {
+  const [data, setData] = useState<ExcelRow[]>([]);
+  const [statuses, setStatuses] = useState<RowStatus[]>([]);
+  const [selectedRows, setSelectedRows] = useState<boolean[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    const storedData = localStorage.getItem('excelData');
+    const storedFile = localStorage.getItem('excelFile');
+    if (storedData) {
+      const parsedData: ExcelRow[] = JSON.parse(storedData);
+      const filteredData = parsedData.filter(row => row.Number != null);
+      setData(filteredData);
+      setStatuses(filteredData.map(row => ({ number: row.Number!, status: 'default' })));
+      setSelectedRows(new Array(filteredData.length).fill(false));
+    }
+    if (storedFile) {
+      const parsedFile: File = JSON.parse(storedFile);
+      setFile(parsedFile);
+    }
+  }, []);
+
+  const handleSelectChange = (index: number) => (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const updatedStatuses = [...statuses];
+    updatedStatuses[index].status = e.target.value;
+    setStatuses(updatedStatuses);
+  };
+
+  const handleRowSelection = (index: number) => () => {
+    const updatedSelectedRows = [...selectedRows];
+    updatedSelectedRows[index] = !updatedSelectedRows[index];
+    setSelectedRows(updatedSelectedRows);
+  };
+
+  const handlePublish = async () => {
+    const selectedStatuses = statuses.filter((_, index) => selectedRows[index]);
+    const allSelected = selectedStatuses.every(status => status.status !== 'default');
+
+    if (!allSelected) {
+      alert('Please select a status for all selected rows.');
+      return;
+    }
+
+    const numbers = selectedStatuses.map(status => status.number);
+    const statusValues = selectedStatuses.map(status => status.status);
+
+    const formData = new FormData();
+    if (file) {
+      formData.append('file', file);
+    }
+    formData.append('numbers', JSON.stringify(numbers));
+    formData.append('statuses', JSON.stringify(statusValues));
+
+    try {
+      const response = await axios.post('/api/save', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      console.log('Response:', response.data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  return (
+    <div className="result-container">
+      {data.map((row, index) => (
+        <div key={index} className="result-row">
+          <input 
+            type="checkbox" 
+            checked={selectedRows[index]} 
+            onChange={handleRowSelection(index)} 
+          />
+          <div className="number-column">{row.Number}</div>
+          <select 
+            onChange={handleSelectChange(index)} 
+            className={statuses[index]?.status || 'default'}
+            value={statuses[index]?.status || 'default'}
+          >
+            <option value="default">Select Status</option>
+            <option value="successful">Successful</option>
+            <option value="unsuccessful">Unsuccessful</option>
+          </select>
+        </div>
+      ))}
+      <button onClick={handlePublish}>Publish</button>
+    </div>
+  );
+};
+
+export default ResultPage;

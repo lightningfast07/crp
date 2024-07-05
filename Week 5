@@ -1,0 +1,1 @@
+This week, I focused on model optimization and created the frontend page for the retrain model feature. We also received a new dataset. I performed hyperparameter tuning for the logistic regression model. After the Thursday meeting, I implemented the changes suggested by Kunal for the project. Our goal for next week is to optimize the model for better performance.

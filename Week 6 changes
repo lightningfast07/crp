@@ -103,3 +103,17 @@ const Dropdown: React.FC = () => {
 };
 
 export default Dropdown;
+
+def __init__(self, models_folder='Models'):
+        self.models_folder = models_folder
+        self.models = self.load_model_filenames()
+        self.current_model = None
+
+    def load_model_filenames(self):
+        # List all files in the models_folder
+        try:
+            filenames = [f for f in os.listdir(self.models_folder) if os.path.isfile(os.path.join(self.models_folder, f))]
+            return filenames
+        except FileNotFoundError:
+            print(f"The folder '{self.models_folder}' does not exist.")
+            return []

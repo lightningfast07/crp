@@ -1,0 +1,105 @@
+# model_manager.py
+from datetime import datetime
+
+class ModelManager:
+    def __init__(self):
+        self.models = []
+
+    def create_model_name(self):
+        today = datetime.today().strftime('%Y-%m-%d')
+        version_count = sum(1 for model in self.models if model.startswith(f"Model-{today}"))
+        new_model_name = f"Model-{today}-Version {version_count + 1}"
+        self.models.append(new_model_name)
+        return new_model_name
+
+    def get_models(self):
+        return self.models
+
+# app.py
+from flask import Flask, jsonify, request
+from model_manager.py import ModelManager
+
+app = Flask(__name__)
+model_manager = ModelManager()
+
+@app.route('/create-model', methods=['POST'])
+def create_model():
+    new_model_name = model_manager.create_model_name()
+    return jsonify({"model_name": new_model_name})
+
+@app.route('/get-models', methods=['GET'])
+def get_models():
+    models = model_manager.get_models()
+    return jsonify(models)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+// Dropdown.tsx
+import React, { useEffect, useState } from 'react';
+
+const Dropdown: React.FC = () => {
+  const [items, setItems] = useState<string[]>([]);
+  const [selectedItem, setSelectedItem] = useState<string>('');
+
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/get-models');
+        const data = await response.json();
+        setItems(data);
+      } catch (error) {
+        console.error('Error fetching the list:', error);
+      }
+    };
+
+    fetchItems();
+  }, []);
+
+  const handleSelectModel = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/load-model', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ model_version: selectedItem }),
+      });
+      const data = await response.json();
+      alert(data.message);
+    } catch (error) {
+      console.error('Error loading the model:', error);
+    }
+  };
+
+  const handleCreateModel = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/create-model', {
+        method: 'POST',
+      });
+      const data = await response.json();
+      alert(`Created model: ${data.model_name}`);
+    } catch (error) {
+      console.error('Error creating the model:', error);
+    }
+  };
+
+  return (
+    <div>
+      <select value={selectedItem} onChange={(e) => setSelectedItem(e.target.value)}>
+        <option value="">Select a model version</option>
+        {items.map((item, index) => (
+          <option key={index} value={item}>
+            {item}
+          </option>
+        ))}
+      </select>
+      <button onClick={handleSelectModel}>Select Model</button>
+      <button onClick={handleCreateModel}>Create New Model</button>
+    </div>
+  );
+};
+
+export default Dropdown;

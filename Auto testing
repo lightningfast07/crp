@@ -1,0 +1,62 @@
+import unittest
+from flask import Flask
+from flask_testing import TestCase
+from io import BytesIO
+from app import app  # Import your Flask app
+
+class TestFlaskRoutes(TestCase):
+
+    def create_app(self):
+        app.config['TESTING'] = True
+        return app
+
+    def test_get_models(self):
+        response = self.client.get('/get-models')
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.json, list)
+
+    def test_load_model(self):
+        response = self.client.get('/load-model', query_string={'model_version': 'v1'})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('message', response.json)
+
+    def test_predict(self):
+        data = {
+            'start': 0,
+            'stop': 10
+        }
+        csv_data = b"""col1,col2,col3
+        1,2,3
+        4,5,6
+        7,8,9
+        """
+        data['file'] = (BytesIO(csv_data), 'data.csv')
+        response = self.client.post('/predict', data=data, content_type='multipart/form-data')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('decision_tree_predictions', response.json)
+        self.assertIn('ann_predictions', response.json)
+
+if __name__ == '__main__':
+    unittest.main()
+
+import unittest
+
+# Load all the test cases from test_app.py
+loader = unittest.TestLoader()
+suite = loader.discover(start_dir='.', pattern='test_app.py')
+
+# Run the test suite
+runner = unittest.TextTestRunner()
+result = runner.run(suite)
+
+# Print summary of results
+print(f"Ran {result.testsRun} tests")
+if result.wasSuccessful():
+    print("All tests passed!")
+else:
+    print(f"Failed tests: {len(result.failures)}")
+    for failed_test, traceback in result.failures:
+        print(f"Test {failed_test} failed with the following traceback:\n{traceback}")
+    print(f"Errored tests: {len(result.errors)}")
+    for errored_test, traceback in result.errors:
+        print(f"Test {errored_test} errored with the following traceback:\n{traceback}")

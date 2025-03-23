@@ -35,6 +35,10 @@ for waiver_col, type_col in zip(waiver_columns, type_columns):
 # Print waiver type breakdown
 for key, value in waiver_type_counts.items():
     print(f"\n{key} Breakdown:\n{value}")
+    plt.figure(figsize=(6, 6))
+    plt.pie(value, labels=value.index, autopct='%1.1f%%', colors=sns.color_palette("viridis", len(value)))
+    plt.title(f"Distribution of {key}")
+    plt.show()
 plt.figure(figsize=(8, 6))
 sns.barplot(x=waiver_counts.index, y=waiver_counts.values, palette="viridis")
 plt.xticks(rotation=30, ha="right")

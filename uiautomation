@@ -1,0 +1,99 @@
+// UIAutomator.ts
+import { Page, Locator } from '@playwright/test';
+
+export class UIAutomator {
+  private page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  private toXPathSafe(label: string): string {
+    return label.toLowerCase().replace(/'/g, `''`);
+  }
+
+  async fillInput(label: string, value: string): Promise<void> {
+    const input = this.page.locator(`
+      //input[
+        contains(translate(@placeholder, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${this.toXPathSafe(label)}') or
+        contains(translate(@aria-label, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${this.toXPathSafe(label)}') or
+        contains(translate(@name, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${this.toXPathSafe(label)}') or
+        contains(translate(@id, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${this.toXPathSafe(label)}')
+      ] |
+      //label[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${this.toXPathSafe(label)}')]
+        /following::input[1]
+    `).first();
+    await input.waitFor({ state: 'visible' });
+    await input.fill(value);
+  }
+
+  async clickButton(buttonText: string): Promise<void> {
+    const button = this.page.locator(`//button[normalize-space(.)='${buttonText}'] | //*[@role='button' and normalize-space(.)='${buttonText}']`).first();
+    await button.waitFor({ state: 'visible' });
+    await button.click();
+  }
+
+  async selectDropdown(label: string, optionText: string): Promise<void> {
+    const selectBox = this.page.locator(`
+      //label[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${this.toXPathSafe(label)}')]
+        /following::select[1]
+    `).first();
+    await selectBox.waitFor({ state: 'visible' });
+    await selectBox.selectOption({ label: optionText });
+  }
+
+  async selectDateTime(label: string, dateStr: string): Promise<void> {
+    const calendarIcon = this.page.locator(`
+      //label[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${this.toXPathSafe(label)}')]
+        /following::button[1] |
+      //input[
+        contains(translate(@placeholder, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${this.toXPathSafe(label)}')
+      ]/following-sibling::button[1]
+    `).first();
+    await calendarIcon.waitFor({ state: 'visible' });
+    await calendarIcon.click();
+
+    const date = new Date(dateStr);
+    const day = date.getDate();
+    const month = date.toLocaleString('default', { month: 'long' });
+    const year = date.getFullYear();
+
+    await this.page.locator(`text="${year}"`).click({ timeout: 3000 }).catch(() => {});
+    await this.page.locator(`text="${month}"`).click({ timeout: 3000 }).catch(() => {});
+    await this.page.locator(`role=gridcell[name="${day}"]`).click();
+  }
+
+  async checkCheckbox(label: string): Promise<void> {
+    const checkbox = this.page.locator(`
+      //input[@type='checkbox' and (
+        contains(@name, '${this.toXPathSafe(label)}') or
+        contains(@id, '${this.toXPathSafe(label)}')
+      )] |
+      //label[contains(., '${this.toXPathSafe(label)}')]/preceding::input[@type='checkbox'][1]
+    `).first();
+    await checkbox.waitFor({ state: 'visible' });
+    await checkbox.check();
+  }
+
+  async hoverOver(text: string): Promise<void> {
+    const element = this.page.locator(`//*[contains(text(), '${text}')]`).first();
+    await element.hover();
+  }
+
+  async clickElement(text: string): Promise<void> {
+    const element = this.page.locator(`//*[contains(text(), '${text}')]`).first();
+    await element.waitFor({ state: 'visible' });
+    await element.click();
+  }
+
+  async uploadFile(label: string, filePath: string): Promise<void> {
+    const fileInput = this.page.locator(`
+      //input[@type='file' and (
+        contains(@name, '${this.toXPathSafe(label)}') or
+        contains(@id, '${this.toXPathSafe(label)}')
+      )] |
+      //label[contains(., '${this.toXPathSafe(label)}')]/following::input[@type='file'][1]
+    `).first();
+    await fileInput.setInputFiles(filePath);
+  }
+}
